@@ -69,37 +69,49 @@ module RuboCop
       # Keep track of the state of the source. If a cop modifies the source
       # and another cop undoes it producing identical source we have an
       # infinite loop.
-      processed_sources = [processed_source.checksum]
+      @processed_sources = []
 
       # When running with --auto-correct, we need to inspect the file (which
       # includes writing a corrected version of it) until no more corrections
       # are made. This is because automatic corrections can introduce new
       # offenses. In the normal case the loop is only executed once.
       loop do
+        check_for_inifinite_loop(processed_source)
+
         # The offenses that couldn't be corrected will be found again so we
         # only keep the corrected ones in order to avoid duplicate reporting.
         offenses.select!(&:corrected?)
-
         new_offenses, updated_source_file = inspect_file(processed_source)
         offenses.concat(new_offenses).uniq!
-        break unless updated_source_file
 
         # We have to reprocess the source to pickup the changes. Since the
         # change could (theoretically) introduce parsing errors, we break the
         # loop if we find any.
-        processed_source = ProcessedSource.from_file(file)
+        break unless updated_source_file
 
-        # Check whether a run created source identical to a previous run, which
-        # means that we definitely have an infinite loop.
-        checksum = processed_source.checksum
-        if processed_sources.include?(checksum)
-          fail InfiniteCorrectionLoop,
-               "Infinite loop detected in #{file}."
-        end
-        processed_sources << checksum
+        processed_source = ProcessedSource.from_file(file)
       end
 
       offenses
+    end
+
+    # Check whether a run created source identical to a previous run, which
+    # means that we definitely have an infinite loop.
+    def check_for_inifinite_loop(processed_source)
+      checksum = processed_source.checksum
+
+      if @processed_sources.include?(checksum) ||
+         @processed_sources.count >= max_auto_correct_count
+        fail InfiniteCorrectionLoop,
+             "Infinite loop detected in #{processed_source.path}."
+      end
+
+      @processed_sources << checksum
+    end
+
+    def max_auto_correct_count
+      @options[:max_auto_correct_count] ||
+        RuboCop::Options::DEFAULT_MAX_AUTO_CORRECT_COUNT
     end
 
     def inspect_file(processed_source)

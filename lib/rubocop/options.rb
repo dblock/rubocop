@@ -6,49 +6,51 @@ module RuboCop
   # This module contains help texts for command line options.
   module OptionsHelp
     TEXT = {
-      only:              'Run only the given cop(s).',
-      only_guide_cops:  ['Run only cops for rules that link to a',
-                         'style guide.'],
-      require:           'Require Ruby file.',
-      config:            'Specify configuration file.',
-      auto_gen_config:  ['Generate a configuration file acting as a',
-                         'TODO list.'],
-      force_exclusion:  ['Force excluding files specified in the',
-                         'configuration `Exclude` even if they are',
-                         'explicitly passed as arguments.'],
-      format:           ['Choose an output formatter. This option',
-                         'can be specified multiple times to enable',
-                         'multiple formatters at the same time.',
-                         '  [p]rogress (default)',
-                         '  [s]imple',
-                         '  [c]lang',
-                         '  [d]isabled cops via inline comments',
-                         '  [fu]ubar',
-                         '  [e]macs',
-                         '  [j]son',
-                         '  [h]tml',
-                         '  [fi]les',
-                         '  [o]ffenses',
-                         '  custom formatter class name'],
-      out:              ['Write output to a file instead of STDOUT.',
-                         'This option applies to the previously',
-                         'specified --format, or the default format',
-                         'if no format is specified.'],
-      fail_level:        'Minimum severity for exit with error code.',
-      show_cops:        ['Shows the given cops, or all cops by',
-                         'default, and their configurations for the',
-                         'current directory.'],
-      fail_fast:        ['Inspect files in order of modification',
-                         'time and stop after the first file',
-                         'containing offenses.'],
-      debug:             'Display debug info.',
-      display_cop_names: 'Display cop names in offense messages.',
-      rails:             'Run extra Rails cops.',
-      lint:              'Run only lint cops.',
-      auto_correct:      'Auto-correct offenses.',
-      no_color:          'Disable color output.',
-      version:           'Display version.',
-      verbose_version:   'Display verbose version.'
+      only:                   'Run only the given cop(s).',
+      only_guide_cops:        ['Run only cops for rules that link to a',
+                               'style guide.'],
+      require:                'Require Ruby file.',
+      config:                 'Specify configuration file.',
+      auto_gen_config:        ['Generate a configuration file acting as a',
+                               'TODO list.'],
+      force_exclusion:        ['Force excluding files specified in the',
+                               'configuration `Exclude` even if they are',
+                               'explicitly passed as arguments.'],
+      format:                 ['Choose an output formatter. This option',
+                               'can be specified multiple times to enable',
+                               'multiple formatters at the same time.',
+                               '  [p]rogress (default)',
+                               '  [s]imple',
+                               '  [c]lang',
+                               '  [d]isabled cops via inline comments',
+                               '  [fu]ubar',
+                               '  [e]macs',
+                               '  [j]son',
+                               '  [h]tml',
+                               '  [fi]les',
+                               '  [o]ffenses',
+                               '  custom formatter class name'],
+      out:                    ['Write output to a file instead of STDOUT.',
+                               'This option applies to the previously',
+                               'specified --format, or the default format',
+                               'if no format is specified.'],
+      fail_level:             'Minimum severity for exit with error code.',
+      show_cops:              ['Shows the given cops, or all cops by',
+                               'default, and their configurations for the',
+                               'current directory.'],
+      fail_fast:              ['Inspect files in order of modification',
+                               'time and stop after the first file',
+                               'containing offenses.'],
+      debug:                  'Display debug info.',
+      display_cop_names:      'Display cop names in offense messages.',
+      rails:                  'Run extra Rails cops.',
+      lint:                   'Run only lint cops.',
+      auto_correct:           'Auto-correct offenses.',
+      max_auto_correct_count: ['Maximum number of auto-correct passes.',
+                               'Default is 50.'],
+      no_color:               'Disable color output.',
+      version:                'Display version.',
+      verbose_version:        'Display verbose version.'
     }
   end
 
@@ -56,6 +58,7 @@ module RuboCop
   class Options
     DEFAULT_FORMATTER = 'progress'
     EXITING_OPTIONS = [:version, :verbose_version, :show_cops]
+    DEFAULT_MAX_AUTO_CORRECT_COUNT = 50
 
     def initialize
       @options = {}
@@ -87,6 +90,7 @@ module RuboCop
         add_severity_option(opts)
         add_flags_with_optional_args(opts)
         add_boolean_flags(opts)
+        add_autocorrect_flags(opts)
       end
     end
 
@@ -150,13 +154,20 @@ module RuboCop
       option(opts, '-D', '--display-cop-names')
       option(opts, '-R', '--rails')
       option(opts, '-l', '--lint')
-      option(opts, '-a', '--auto-correct')
 
       @options[:color] = true
       option(opts, '-n', '--no-color') { @options[:color] = false }
 
       option(opts, '-v', '--version')
       option(opts, '-V', '--verbose-version')
+    end
+
+    def add_autocorrect_flags(opts)
+      option(opts, '-a', '--auto-correct')
+
+      option(opts, '--max-auto-correct-count [n]') do |count|
+        @options[:max_auto_correct_count] = count.to_i
+      end
     end
 
     # Sets a value in the @options hash, based on the given long option and its
@@ -184,7 +195,7 @@ module RuboCop
       return unless rejected
 
       warn '-s/--silent options is dropped. ' \
-           '`emacs` and `files` formatters no longer display summary.'
+                '`emacs` and `files` formatters no longer display summary.'
     end
 
     def convert_deprecated_options(args)

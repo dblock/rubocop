@@ -63,39 +63,6 @@ describe RuboCop::Runner, :isolated_environment do
   end
 
   describe '#run with cops autocorrecting each-other' do
-    before :each do
-      module RuboCop
-        module Cop
-          class ClassMustBeAModule < RuboCop::Cop::Cop
-            def on_class(node)
-              add_offense(node, :expression, 'Class must be a Module')
-            end
-
-            def autocorrect(node)
-              @corrections << lambda do |corrector|
-                corrector.replace(node.loc.keyword, 'module')
-              end
-            end
-          end
-
-          class ModuleMustBeAClass < RuboCop::Cop::Cop
-            def on_module(node)
-              add_offense(node, :expression, 'Module must be a Class')
-            end
-
-            def autocorrect(node)
-              @corrections << lambda do |corrector|
-                corrector.replace(node.loc.keyword, 'class')
-              end
-            end
-          end
-        end
-      end
-
-      RuboCop::Cop::Cop.all.delete RuboCop::Cop::ClassMustBeAModule
-      RuboCop::Cop::Cop.all.delete RuboCop::Cop::ModuleMustBeAClass
-    end
-
     let(:options) do
       {
         auto_correct: true,
@@ -106,7 +73,42 @@ describe RuboCop::Runner, :isolated_environment do
     subject(:runner) do
       runner_class = Class.new(RuboCop::Runner) do
         def mobilized_cop_classes(_config)
-          [RuboCop::Cop::ClassMustBeAModule, RuboCop::Cop::ModuleMustBeAClass]
+          [
+            RuboCop::Cop::Test::ClassMustBeAModuleCop,
+            RuboCop::Cop::Test::ModuleMustBeAClassCop
+          ]
+        end
+      end
+      runner_class.new(options, RuboCop::ConfigStore.new)
+    end
+
+    context 'if there is an offense in an inspected file' do
+      let(:source) { <<-END.strip_indent }
+        # coding: utf-8
+        class Klass
+        end
+      END
+
+      it 'aborts because of an infinite loop' do
+        expect do
+          runner.run([])
+        end.to raise_error RuboCop::Runner::InfiniteCorrectionLoop
+      end
+    end
+  end
+
+  describe '#run with a cop that keeps autocorrecting something' do
+    let(:options) do
+      {
+        auto_correct: true,
+        formatters: [['progress', formatter_output_path]]
+      }
+    end
+
+    subject(:runner) do
+      runner_class = Class.new(RuboCop::Runner) do
+        def mobilized_cop_classes(_config)
+          [RuboCop::Cop::Test::StubbornCop]
         end
       end
       runner_class.new(options, RuboCop::ConfigStore.new)

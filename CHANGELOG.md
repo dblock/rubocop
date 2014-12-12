@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+## New features
+
+* [#1492](https://github.com/bbatsov/rubocop/pull/1492): New `--max-auto-correct-count` option that breaks potentially infinite auto-correct loops. ([@dblock][])
+
 ### Changes
 
 * [#1492](https://github.com/bbatsov/rubocop/pull/1492): Abort when auto-correct causes an infinite loop. ([@dblock][])

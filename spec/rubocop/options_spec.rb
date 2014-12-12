@@ -75,10 +75,12 @@ Usage: rubocop [options] [file1, file2, ...]
     -D, --display-cop-names          Display cop names in offense messages.
     -R, --rails                      Run extra Rails cops.
     -l, --lint                       Run only lint cops.
-    -a, --auto-correct               Auto-correct offenses.
     -n, --no-color                   Disable color output.
     -v, --version                    Display version.
     -V, --verbose-version            Display verbose version.
+    -a, --auto-correct               Auto-correct offenses.
+        --max-auto-correct-count [n] Maximum number of auto-correct passes.
+                                     Default is 50.
       END
 
         expect($stdout.string).to eq(expected_help)
