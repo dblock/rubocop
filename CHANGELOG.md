@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+* [#1492](https://github.com/bbatsov/rubocop/pull/1492): Abort when auto-correct causes an infinite loop. ([@dblock][])
+
 ### Bugs fixed
 
 * Handle element assignment in `Lint/AssignmentInCondition`. ([@jonas054][])

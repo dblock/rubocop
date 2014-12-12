@@ -4,6 +4,8 @@ module RuboCop
   # This class handles the processing of files, which includes dealing with
   # formatters and letting cops inspect the files.
   class Runner
+    class InfiniteCorrectionLoop < Exception; end
+
     attr_reader :errors, :aborting
     alias_method :aborting?, :aborting
 
@@ -64,6 +66,11 @@ module RuboCop
     def do_inspection_loop(file, processed_source)
       offenses = []
 
+      # Keep track of the state of the source. If a cop modifies the source
+      # and another cop undoes it producing identical source we have an
+      # infinite loop.
+      processed_sources = [processed_source.checksum]
+
       # When running with --auto-correct, we need to inspect the file (which
       # includes writing a corrected version of it) until no more corrections
       # are made. This is because automatic corrections can introduce new
@@ -81,6 +88,15 @@ module RuboCop
         # change could (theoretically) introduce parsing errors, we break the
         # loop if we find any.
         processed_source = ProcessedSource.from_file(file)
+
+        # Check whether a run created source identical to a previous run, which
+        # means that we definitely have an infinite loop.
+        checksum = processed_source.checksum
+        if processed_sources.include?(checksum)
+          fail InfiniteCorrectionLoop,
+               "Infinite loop detected in #{file}."
+        end
+        processed_sources << checksum
       end
 
       offenses
